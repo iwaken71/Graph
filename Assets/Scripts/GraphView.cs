@@ -1,0 +1,271 @@
+﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System;
+
+public class GraphView : MonoBehaviour {
+
+	public bool view2D = false;
+
+	Graph graph;
+
+	Dictionary<int,Vector3> nodePosition = new Dictionary<int,Vector3> ();
+	Dictionary<int,GameObject> nodeObj = new Dictionary<int,GameObject> ();
+
+	GameObject nodeParent,edgeParent;
+	GameObject nodePrefab,edgePrefab;
+
+	public void SetGraph(Graph input){
+		this.graph = input;
+
+		foreach (Node node in graph.Nodes) {
+			GameObject obj = Instantiate (nodePrefab)as GameObject;
+			obj.name = node.ID.ToString ();
+			int degree = node.neighbor.Count;
+			obj.transform.localScale = Vector3.one * (0.2f + 0.25f* degree);
+			obj.transform.SetParent (nodeParent.transform);
+			obj.SetActive (false);
+			nodeObj.Add (node.ID,obj);
+			Vector3 pos = randomPos ();
+			nodePosition.Add (node.ID,pos);
+		}
+	}
+
+	public void SetColor(int id,Color col){
+		nodeObj [id].GetComponent<Renderer> ().material.color = col;
+	}
+
+
+
+
+
+
+	public void AddEdge(int id1,int id2){
+		if (graph == null) {
+			Debug.LogError ("graphがセットされていません");
+			return;
+		}
+			
+		bool existNode1 = graph.Nodes.Any (node => node.ID == id1);
+		bool existNode2 = graph.Nodes.Any (node => node.ID == id2);
+		graph.AddEdge (id1,id2);
+		if (!existNode1) {
+			GameObject obj = Instantiate (nodePrefab)as GameObject;
+			obj.name = id1.ToString ();
+			obj.transform.SetParent (nodeParent.transform);
+			obj.SetActive (false);
+			nodeObj.Add (id1,obj);
+			Vector3 pos = randomPos ();
+			nodePosition.Add (id1, pos);
+		}
+		if (!existNode2) {
+			GameObject obj = Instantiate (nodePrefab)as GameObject;
+			obj.name = id2.ToString ();
+			obj.transform.SetParent (nodeParent.transform);
+			obj.SetActive (false);
+			nodeObj.Add (id2,obj);
+			Vector3 pos = randomPos ();
+			nodePosition.Add (id2, pos);
+		}
+	}
+
+	void Awake(){
+		nodeParent = new GameObject ("Node");
+		edgeParent = new GameObject ("Edge");
+		nodeParent.transform.parent = this.transform;
+		edgeParent.transform.parent = this.transform;
+		nodePrefab = Resources.Load ("Node")as GameObject;
+		edgePrefab = Resources.Load ("Edge")as GameObject;
+	}
+
+	void Update(){
+		if (Input.GetKeyDown (KeyCode.M)) {
+			PhysicsModelLayout ();
+		}
+
+	}
+
+	public void PhysicsModelLayout(){
+		StartCoroutine (PhysicsModel());
+	}
+
+	void OnVisualNode(){
+		foreach (GameObject node in nodeObj.Values) {
+			node.SetActive (true);
+		}
+	}
+
+	void ClearEdge(){
+		for(int i = 0; i < edgeParent.transform.childCount;i++){
+			Destroy (edgeParent.transform.GetChild(i).gameObject);
+		}
+	}
+
+	public void CircularLayout(float radius){
+		
+		nodePosition.Clear ();
+		int nodeNum = graph.Nodes.Count;
+		int count = 0;
+		OnVisualNode ();
+
+		foreach (Node node in graph.Nodes) {
+			var angle = (360.0f / nodeNum) * count * (Mathf.PI / 180);
+			Vector3 pos = new Vector3 (Mathf.Cos (angle), 0, Mathf.Sin (angle))*radius;
+			nodePosition.Add (node.ID, pos);
+			count++;
+			nodeObj [node.ID].transform.position = pos;
+		}
+
+		DrawAllEdge ();
+	}
+	private void DrawAllNode(){
+		OnVisualNode ();
+		foreach (Node node in graph.Nodes) {
+			nodeObj [node.ID].transform.position = nodePosition [node.ID];
+		}
+	}
+	private void DrawAllEdge(){
+		ClearEdge ();
+		OnVisualNode ();
+		foreach (Node node in graph.Nodes) {
+			foreach (int id in node.neighbor) {
+				DrawEdge (node.ID,id);
+			}
+		}
+	}
+
+	private void DrawEdge(int id1,int id2){
+
+		if (nodePosition.ContainsKey (id1) && nodePosition.ContainsKey (id2)) {
+			string name = id1.ToString () + "," + id2.ToString ();
+			GameObject newLine = Instantiate (edgePrefab);
+			newLine.name = name;
+			LineRenderer lr = newLine.GetComponent<LineRenderer> ();
+			Vector3[] vec = new Vector3[2];
+			vec [0] = nodePosition [id1];
+			vec [1] = nodePosition [id2];
+			lr.SetWidth (0.05f, 0.05f);
+			lr.SetPositions (vec);
+			newLine.transform.SetParent (edgeParent.transform);
+		} else {
+			Debug.LogError ("edgeがかけません");
+		}
+	}
+
+	IEnumerator PhysicsModel(float k = 1,float f = 0.001f,float n = 5,float delta = 0.25f,float limit = 1){
+		Dictionary<int,Vector3> vel = new Dictionary<int,Vector3> ();
+		foreach (Node node in graph.Nodes) {
+			vel [node.ID] = Vector3.zero;
+			if(!nodePosition.ContainsKey(node.ID)){
+				Vector3 pos = randomPos ();
+				nodePosition[node.ID] = pos;
+			}
+		}
+		float E = 0;
+		do {
+			E = 0;
+			foreach(Node node1 in graph.Nodes){
+				Vector3 power = new Vector3(0,0,0); 
+
+				foreach(Node node2 in graph.Nodes){
+					if(node1.ID!=node2.ID){
+						Vector3 toNode = (nodePosition[node2.ID]-nodePosition[node1.ID]).normalized;
+						float sqrDistance = SqrDistance(nodePosition[node1.ID],nodePosition[node2.ID]);
+						power += toNode*f/(sqrDistance); 
+					}
+				}
+				foreach(int neighbor in node1.neighbor){
+					Vector3 toNode = (nodePosition[neighbor]-nodePosition[node1.ID]).normalized;
+					float distance = Vector3.Distance(nodePosition[node1.ID],nodePosition[neighbor]);
+					power += toNode*k*(distance-n);
+				}
+
+				vel[node1.ID] = (vel[node1.ID]+delta*power)*0.5f;
+				nodePosition[node1.ID] = nodePosition[node1.ID] + delta * vel[node1.ID];
+				float v = vel[node1.ID].sqrMagnitude;
+				E += v;
+
+
+			}
+			Debug.Log(E);
+			DrawAllNode();
+			DrawAllEdge();
+			if(E>1000000){
+				yield break;
+			}
+			yield return new WaitForSeconds (delta);  
+		} while(E > limit);
+		yield break;
+
+	}
+
+	void PhysicsModel2(float k = 2,float f = 0.01f,float n = 10,float limit = 1){
+		if (graph == null) {
+			return;
+		}
+		Dictionary<int,Vector3> vel = new Dictionary<int,Vector3> ();
+		foreach (Node node in graph.Nodes) {
+			vel [node.ID] = Vector3.zero;
+			if(!nodePosition.ContainsKey(node.ID)){
+				Vector3 pos = randomPos ();
+				nodePosition[node.ID] = pos;
+			}
+		}
+		float E = 0;
+		do {
+			E = 0;
+			foreach(Node node1 in graph.Nodes){
+				Vector3 power = new Vector3(0,0,0);
+
+
+				foreach(Node node2 in graph.Nodes){
+					if(node1.ID!=node2.ID){
+
+						Vector3 toNode = (nodePosition[node2.ID]-nodePosition[node1.ID]).normalized;
+						float sqrDistance = SqrDistance(nodePosition[node1.ID],nodePosition[node2.ID]);
+						power += toNode*f/(sqrDistance); 
+					}
+				}
+				foreach(int neighbor in node1.neighbor){
+					Vector3 toNode = (nodePosition[neighbor]-nodePosition[node1.ID]).normalized;
+					float distance = Vector3.Distance(nodePosition[node1.ID],nodePosition[neighbor]);
+					power += toNode*k*(distance-n);
+				}
+
+				vel[node1.ID] = (vel[node1.ID]+Time.fixedDeltaTime*power)*0.5f;
+				nodePosition[node1.ID] = nodePosition[node1.ID] + Time.fixedDeltaTime * vel[node1.ID];
+				float v = vel[node1.ID].sqrMagnitude;
+				E += v;
+
+
+			}
+			Debug.Log(E);
+			DrawAllNode();
+			DrawAllEdge(); 
+		} while(E > limit);
+
+	}
+
+	void FixedUpdate(){
+		//PhysicsModel2 ();
+
+					
+	}
+
+
+
+	float SqrDistance(Vector3 a,Vector3 b){
+		Vector3 c = a - b;
+		return c.sqrMagnitude;
+	}
+
+	Vector3 randomPos(){
+		if (view2D) {
+			return new Vector3 (UnityEngine.Random.Range (0f, 10f),0, UnityEngine.Random.Range (0f, 10f));
+		} else {
+			return  new Vector3 (UnityEngine.Random.Range (0f, 10f), UnityEngine.Random.Range (0f, 10f), UnityEngine.Random.Range (0f, 10f));
+		}
+
+	}
+}
