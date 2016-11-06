@@ -16,7 +16,7 @@ public class Test : MonoBehaviour {
 		graphObject = Instantiate(Resources.Load ("Graph") as GameObject);
 		//g = graphObject.GetComponent<Graph> ();
 		graphView = graphObject.GetComponent<GraphView> ();
-		g = BAModel (200,3);//ReadGraph ("ABC");
+		g = BAModel (250,3);//ReadGraph ("ABC");
 		crawler = new Crawler();
 
 		//StartCoroutine (BAModelView(10,3));
@@ -95,7 +95,6 @@ public class Test : MonoBehaviour {
 				a.RemoveAll (num => num == nextID);
 				nodeList.Add (index);
 				nodeList.Add (nextID);
-				Debug.Log (nextID);
 			}
 			index++;
 

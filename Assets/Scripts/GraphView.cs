@@ -3,10 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using UniRx;
 
 public class GraphView : MonoBehaviour {
 
 	public bool view2D = false;
+	[RangeReactiveProperty(0f,1f)]
+	public FloatReactiveProperty alpha,nodeBaseSize,nodeSizeUp,edgeAlpha;
+	[RangeReactiveProperty(0f,0.2f)]
+	public FloatReactiveProperty edgeWidth;
+
+
 
 	Graph graph;
 
@@ -16,6 +23,41 @@ public class GraphView : MonoBehaviour {
 	GameObject nodeParent,edgeParent;
 	GameObject nodePrefab,edgePrefab;
 
+	void Awake(){
+		nodeParent = new GameObject ("Node");
+		edgeParent = new GameObject ("Edge");
+		nodeParent.transform.parent = this.transform;
+		edgeParent.transform.parent = this.transform;
+		nodePrefab = Resources.Load ("Node")as GameObject;
+		edgePrefab = Resources.Load ("Edge")as GameObject;
+	}
+
+	void Start(){
+		nodeBaseSize.Value = 0.2f;
+		nodeSizeUp.Value = 0.1f;
+		alpha.Value = 1.0f;
+		edgeWidth.Value = 0.05f;
+		edgeAlpha.Value = 0.2f;
+		nodeBaseSize.Subscribe(x => {
+			NodeSizeUpdate(x,nodeSizeUp.Value);
+		});
+		nodeSizeUp.Subscribe(x => {
+			NodeSizeUpdate(nodeBaseSize.Value,x);
+		});
+
+		alpha.Subscribe (x => {
+			NodeColorAlphaUpdate (x);
+		});
+		edgeWidth.Subscribe (x => {
+			DrawAllEdge();
+		});
+
+		edgeAlpha.Subscribe (x=>{
+			DrawAllEdge();
+		});
+
+	}
+
 	public void SetGraph(Graph input){
 		this.graph = input;
 
@@ -23,7 +65,7 @@ public class GraphView : MonoBehaviour {
 			GameObject obj = Instantiate (nodePrefab)as GameObject;
 			obj.name = node.ID.ToString ();
 			int degree = node.neighbor.Count;
-			obj.transform.localScale = Vector3.one * (0.2f + 0.25f* degree);
+			obj.transform.localScale = Vector3.one * (nodeBaseSize.Value+ degree*nodeSizeUp.Value);
 			obj.transform.SetParent (nodeParent.transform);
 			obj.SetActive (false);
 			nodeObj.Add (node.ID,obj);
@@ -34,6 +76,25 @@ public class GraphView : MonoBehaviour {
 
 	public void SetColor(int id,Color col){
 		nodeObj [id].GetComponent<Renderer> ().material.color = col;
+	}
+
+
+
+	void NodeSizeUpdate(float nodeBaseSize,float nodeSizeUp){
+		foreach (Node node in graph.Nodes) {
+			GameObject obj = nodeObj [node.ID];
+			int degree = node.neighbor.Count;
+			obj.transform.localScale = Vector3.one * (nodeBaseSize+ degree*nodeSizeUp);
+		}
+	}
+
+	void NodeColorAlphaUpdate(float a){
+		foreach (Node node in graph.Nodes) {
+			GameObject obj = nodeObj [node.ID];
+			Color c = obj.GetComponent<Renderer> ().material.color;
+			obj.GetComponent<Renderer> ().material.color = new Color (c.r,c.g,c.b,a);
+
+		}
 	}
 
 
@@ -70,19 +131,13 @@ public class GraphView : MonoBehaviour {
 		}
 	}
 
-	void Awake(){
-		nodeParent = new GameObject ("Node");
-		edgeParent = new GameObject ("Edge");
-		nodeParent.transform.parent = this.transform;
-		edgeParent.transform.parent = this.transform;
-		nodePrefab = Resources.Load ("Node")as GameObject;
-		edgePrefab = Resources.Load ("Edge")as GameObject;
-	}
+
 
 	void Update(){
 		if (Input.GetKeyDown (KeyCode.M)) {
 			PhysicsModelLayout ();
 		}
+		//NodeSizeUpdate ();
 
 	}
 
@@ -145,7 +200,9 @@ public class GraphView : MonoBehaviour {
 			Vector3[] vec = new Vector3[2];
 			vec [0] = nodePosition [id1];
 			vec [1] = nodePosition [id2];
-			lr.SetWidth (0.05f, 0.05f);
+			lr.SetWidth (edgeWidth.Value, edgeWidth.Value);
+			Color c  = lr.material.color;
+			lr.material.color = new Color (c.r, c.g, c.b, edgeAlpha.Value);
 			lr.SetPositions (vec);
 			newLine.transform.SetParent (edgeParent.transform);
 		} else {
