@@ -14,11 +14,12 @@ public class Controller : MonoBehaviour {
 	void Start () {
 		graphObject = Instantiate(Resources.Load ("Graph") as GameObject);
 		graphView = graphObject.GetComponent<GraphView> ();
-		g = ReadGraph("facebook");//BAModel (250,3);
+		g=BAModel (250,3);
+		Debug.Log("readGraph");
 		crawler = new Crawler();
-		//graphView.SetGraph(g);
-		//graphView.PhysicsModelLayout();
-		crawler.NBRW (g, 0.1f);
+		graphView.SetGraph(g);
+		graphView.PhysicsModelLayout();
+		crawler.RW (g, 0.5f);
 	}
 	
 	// Update is called once per frame
@@ -32,8 +33,6 @@ public class Controller : MonoBehaviour {
 	void SamplingProcess(){
 		int now_node = crawler.NextRW (g,0);
 		graphView.SetColor (now_node, Color.yellow);
-
-
 	}
 	/*
 	IEnumerator BAModelView(int n,int m){

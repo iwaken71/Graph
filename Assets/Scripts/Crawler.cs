@@ -39,7 +39,9 @@ public class Crawler{
 	}
 
 	public List<int> RW(Graph g, float p){
-		int num = (int)(g.Nodes.Count / p);
+		int num = (int)(g.Nodes.Count * p);
+		Debug.Log (g.Nodes.Count);
+		Debug.Log (num);
 		List<int> sampleNodes = new List<int> ();
 		List<int> Nodes = new List<int> ();
 		foreach (Node node in g.Nodes) {
@@ -49,15 +51,14 @@ public class Crawler{
 		sampleNodes.Add (now_node);
 
 		while (sampleNodes.Count < num) {
-			Nodes.Clear ();
-			foreach (int node in g.GetNode(now_node).neighbor) {
-				Nodes.Add (node);
-			}
-			int next_node = Nodes[Random.Range(0,Nodes.Count)];
+			List<int> neighbor_list = new List<int>(g.GetNode (now_node).neighbor);
+			int next_node = neighbor_list[Random.Range(0,neighbor_list.Count)];
+
 
 			now_node = next_node;
 			sampleNodes.Add (now_node);
 		}
+		PrintArray (sampleNodes);
 		return sampleNodes;
 	}
 
@@ -74,14 +75,12 @@ public class Crawler{
 		sampleNodes.Add (now_node);
 
 		while (sampleNodes.Count < num) {
-			Nodes.Clear ();
-			foreach (int node in g.GetNode(now_node).neighbor) {
-				Nodes.Add (node);
-			}
-			int next_node = Nodes[Random.Range(0,Nodes.Count)];
+			List<int> neighbor_list = new List<int>(g.GetNode (now_node).neighbor);
+			int next_node = neighbor_list[Random.Range(0,neighbor_list.Count)];
+			int degree = neighbor_list.Count;
 
 			float ran = Random.Range (0f,1f);
-			float q = (float)g.GetNode (now_node).neighbor.Count / g.GetNode (now_node).neighbor.Count;
+			float q = (float)degree / g.GetNode (next_node).neighbor.Count;
 			if (ran < q) {
 				now_node = next_node;
 			}
@@ -102,28 +101,24 @@ public class Crawler{
 
 		while (sampleNodes.Count < num) {
 			Nodes.Clear ();
-			foreach (int node in g.GetNode(now_node).neighbor) {
-				Nodes.Add (node);
-			}
-			int next_node = Nodes[Random.Range(0,Nodes.Count)];
 			List<int> neighbor_list = new List<int>(g.GetNode (now_node).neighbor);
+			int next_node = neighbor_list[Random.Range(0,neighbor_list.Count)];
 			int degree = neighbor_list.Count;
-			while (true) {
-				if (degree <= 1) {
-					now_node = next_node;
-					break;
-				}
-				if (next_node == sampleNodes [sampleNodes.Count - 1]) {
-					// もう一度
-				} else {
-					now_node = next_node;
-					break;
+			if (degree <= 1) {
+				now_node = next_node;
+			} else {
+				while (true) {
+					if (next_node == sampleNodes [sampleNodes.Count - 1]) {
+						// もう一度
+					} else {
+						now_node = next_node;
+						break;
+					}
 				}
 			}
 			//Debug.Log (now_node);
 			sampleNodes.Add (now_node);
 		}
-		PrintArray (sampleNodes);
 		return sampleNodes;
 	}
 

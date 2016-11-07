@@ -28,6 +28,7 @@ public class Graph{
 		
 	// 一応Nodeを返り値に持つが、返り値を使わないことが多い。
 	public Node AddNode(int id){
+
 		bool existNode = Nodes.Any (node => node.ID == id);
 		if (existNode) {
 			Node node1 = 
