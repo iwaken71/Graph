@@ -4,9 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-public class Test : MonoBehaviour {
+public class Controller : MonoBehaviour {
 	GameObject graphObject;
-	//Graph g;
 	GraphView graphView;
 	Crawler crawler;
 	Graph g;
@@ -14,17 +13,11 @@ public class Test : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		graphObject = Instantiate(Resources.Load ("Graph") as GameObject);
-		//g = graphObject.GetComponent<Graph> ();
 		graphView = graphObject.GetComponent<GraphView> ();
-		g = BAModel (250,3);//ReadGraph ("ABC");
+		g = BAModel (250,3);
 		crawler = new Crawler();
-
-		//StartCoroutine (BAModelView(10,3));
-		//graphView.CircularLayout (10);
 		graphView.SetGraph(g);
 		graphView.PhysicsModelLayout();
-
-	
 	}
 	
 	// Update is called once per frame
@@ -41,7 +34,7 @@ public class Test : MonoBehaviour {
 
 
 	}
-
+	/*
 	IEnumerator BAModelView(int n,int m){
 		Graph g = new Graph ();
 		graphView.SetGraph (g);
@@ -73,6 +66,7 @@ public class Test : MonoBehaviour {
 
 		}
 	}
+	*/
 
 	private Graph BAModel(int n,int m){
 		Graph g = new Graph ();

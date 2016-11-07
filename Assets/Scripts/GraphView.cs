@@ -101,7 +101,7 @@ public class GraphView : MonoBehaviour {
 
 
 
-
+	/*
 	public void AddEdge(int id1,int id2){
 		if (graph == null) {
 			Debug.LogError ("graphがセットされていません");
@@ -130,35 +130,36 @@ public class GraphView : MonoBehaviour {
 			nodePosition.Add (id2, pos);
 		}
 	}
+	*/
 
 
 
 	void Update(){
-		if (Input.GetKeyDown (KeyCode.M)) {
+		if (Input.GetKeyDown (KeyCode.P)) {
 			PhysicsModelLayout ();
 		}
-		//NodeSizeUpdate ();
-
 	}
-
+	// 力学モデルの描画を行なう
 	public void PhysicsModelLayout(){
 		StartCoroutine (PhysicsModel());
 	}
 
+	// Nodeを見えるようにする
 	void OnVisualNode(){
 		foreach (GameObject node in nodeObj.Values) {
 			node.SetActive (true);
 		}
 	}
 
-	void ClearEdge(){
+	// エッジの描画を消去する
+	private void ClearEdge(){
 		for(int i = 0; i < edgeParent.transform.childCount;i++){
 			Destroy (edgeParent.transform.GetChild(i).gameObject);
 		}
 	}
 
+	// 円配置のレイアウト
 	public void CircularLayout(float radius){
-		
 		nodePosition.Clear ();
 		int nodeNum = graph.Nodes.Count;
 		int count = 0;
@@ -190,8 +191,8 @@ public class GraphView : MonoBehaviour {
 		}
 	}
 
+	// 辺を描画する
 	private void DrawEdge(int id1,int id2){
-
 		if (nodePosition.ContainsKey (id1) && nodePosition.ContainsKey (id2)) {
 			string name = id1.ToString () + "," + id2.ToString ();
 			GameObject newLine = Instantiate (edgePrefab);
@@ -210,7 +211,9 @@ public class GraphView : MonoBehaviour {
 		}
 	}
 
-	IEnumerator PhysicsModel(float k = 1,float f = 0.001f,float n = 5,float delta = 0.25f,float limit = 1){
+	// 力学モデルによるグラフ描画アルゴリズム
+	// k:バネ定数 f:クーロン力の定数 n:バネの自然長 delta: 更新時間 limit: 運動エネルギーによる停止条件
+	IEnumerator PhysicsModel(float k = 1,float f = 0.001f,float n = 5,float delta = 0.25f,float limit = 1f){
 		Dictionary<int,Vector3> vel = new Dictionary<int,Vector3> ();
 		foreach (Node node in graph.Nodes) {
 			vel [node.ID] = Vector3.zero;
@@ -256,61 +259,6 @@ public class GraphView : MonoBehaviour {
 		yield break;
 
 	}
-
-	void PhysicsModel2(float k = 2,float f = 0.01f,float n = 10,float limit = 1){
-		if (graph == null) {
-			return;
-		}
-		Dictionary<int,Vector3> vel = new Dictionary<int,Vector3> ();
-		foreach (Node node in graph.Nodes) {
-			vel [node.ID] = Vector3.zero;
-			if(!nodePosition.ContainsKey(node.ID)){
-				Vector3 pos = randomPos ();
-				nodePosition[node.ID] = pos;
-			}
-		}
-		float E = 0;
-		do {
-			E = 0;
-			foreach(Node node1 in graph.Nodes){
-				Vector3 power = new Vector3(0,0,0);
-
-
-				foreach(Node node2 in graph.Nodes){
-					if(node1.ID!=node2.ID){
-
-						Vector3 toNode = (nodePosition[node2.ID]-nodePosition[node1.ID]).normalized;
-						float sqrDistance = SqrDistance(nodePosition[node1.ID],nodePosition[node2.ID]);
-						power += toNode*f/(sqrDistance); 
-					}
-				}
-				foreach(int neighbor in node1.neighbor){
-					Vector3 toNode = (nodePosition[neighbor]-nodePosition[node1.ID]).normalized;
-					float distance = Vector3.Distance(nodePosition[node1.ID],nodePosition[neighbor]);
-					power += toNode*k*(distance-n);
-				}
-
-				vel[node1.ID] = (vel[node1.ID]+Time.fixedDeltaTime*power)*0.5f;
-				nodePosition[node1.ID] = nodePosition[node1.ID] + Time.fixedDeltaTime * vel[node1.ID];
-				float v = vel[node1.ID].sqrMagnitude;
-				E += v;
-
-
-			}
-			Debug.Log(E);
-			DrawAllNode();
-			DrawAllEdge(); 
-		} while(E > limit);
-
-	}
-
-	void FixedUpdate(){
-		//PhysicsModel2 ();
-
-					
-	}
-
-
 
 	float SqrDistance(Vector3 a,Vector3 b){
 		Vector3 c = a - b;

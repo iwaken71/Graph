@@ -5,13 +5,15 @@ using System.Linq;
 
 public class Graph{
 
+	// Nodeの集合
 	public HashSet<Node> Nodes;
 
 	public Graph(){
 		Nodes = new HashSet<Node> ();
 	}
-
+		
 	public Node GetNode(int id){
+		// 引数idのNodeが存在するか
 		bool existNode = Nodes.Any (node => node.ID == id);
 		if (existNode) {
 			Node node1 = 
@@ -23,9 +25,9 @@ public class Graph{
 			return new Node(-1);
 		}
 	}
-
+		
+	// 一応Nodeを返り値に持つが、返り値を使わないことが多い。
 	public Node AddNode(int id){
-
 		bool existNode = Nodes.Any (node => node.ID == id);
 		if (existNode) {
 			Node node1 = 
@@ -41,7 +43,6 @@ public class Graph{
 
 	}
 	public void AddEdge(int id1,int id2){
-		
 		Node node1 = AddNode (id1);
 		node1.neighbor.Add (id2);
 		Node node2 = AddNode (id2);
@@ -53,7 +54,7 @@ public class Graph{
 
 public class Node{
 	int id;
-	public HashSet<int> neighbor;
+	public HashSet<int> neighbor; //隣接ノードの集合
 
 	public int ID{
 		get{ return id;}
@@ -71,14 +72,9 @@ public class Node{
 		{
 			return false;
 		}
-		//この型が継承できないクラスや構造体であれば、次のようにできる
-		//if (!(obj is TestClass))
-
-		//Numberで比較する
+		//idで比較する
 		Node c = (Node)obj;
 		return (this.id == c.id);
-		//または、
-		//return (this.Number.Equals(c.Number));
 	}
 	//Equalsがtrueを返すときに同じ値を返す
 	public override int GetHashCode()
