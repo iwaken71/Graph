@@ -47,7 +47,6 @@ public class Graph{
 		node1.neighbor.Add (id2);
 		Node node2 = AddNode (id2);
 		node2.neighbor.Add (id1);
-
 	}
 }
 

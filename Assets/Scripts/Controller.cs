@@ -14,10 +14,11 @@ public class Controller : MonoBehaviour {
 	void Start () {
 		graphObject = Instantiate(Resources.Load ("Graph") as GameObject);
 		graphView = graphObject.GetComponent<GraphView> ();
-		g = BAModel (250,3);
+		g = ReadGraph("facebook");//BAModel (250,3);
 		crawler = new Crawler();
-		graphView.SetGraph(g);
-		graphView.PhysicsModelLayout();
+		//graphView.SetGraph(g);
+		//graphView.PhysicsModelLayout();
+		crawler.NBRW (g, 0.1f);
 	}
 	
 	// Update is called once per frame

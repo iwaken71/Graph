@@ -81,6 +81,8 @@ public class GraphView : MonoBehaviour {
 
 
 	void NodeSizeUpdate(float nodeBaseSize,float nodeSizeUp){
+		if (graph == null)
+			return;
 		foreach (Node node in graph.Nodes) {
 			GameObject obj = nodeObj [node.ID];
 			int degree = node.neighbor.Count;
@@ -89,6 +91,8 @@ public class GraphView : MonoBehaviour {
 	}
 
 	void NodeColorAlphaUpdate(float a){
+		if (graph == null)
+			return;
 		foreach (Node node in graph.Nodes) {
 			GameObject obj = nodeObj [node.ID];
 			Color c = obj.GetComponent<Renderer> ().material.color;
@@ -160,6 +164,8 @@ public class GraphView : MonoBehaviour {
 
 	// 円配置のレイアウト
 	public void CircularLayout(float radius){
+		if (graph == null)
+			return;
 		nodePosition.Clear ();
 		int nodeNum = graph.Nodes.Count;
 		int count = 0;
@@ -176,12 +182,16 @@ public class GraphView : MonoBehaviour {
 		DrawAllEdge ();
 	}
 	private void DrawAllNode(){
+		if (graph == null)
+			return;
 		OnVisualNode ();
 		foreach (Node node in graph.Nodes) {
 			nodeObj [node.ID].transform.position = nodePosition [node.ID];
 		}
 	}
 	private void DrawAllEdge(){
+		if (graph == null)
+			return;
 		ClearEdge ();
 		OnVisualNode ();
 		foreach (Node node in graph.Nodes) {
@@ -193,6 +203,9 @@ public class GraphView : MonoBehaviour {
 
 	// 辺を描画する
 	private void DrawEdge(int id1,int id2){
+		if (graph == null)
+			return;
+		
 		if (nodePosition.ContainsKey (id1) && nodePosition.ContainsKey (id2)) {
 			string name = id1.ToString () + "," + id2.ToString ();
 			GameObject newLine = Instantiate (edgePrefab);
@@ -214,6 +227,8 @@ public class GraphView : MonoBehaviour {
 	// 力学モデルによるグラフ描画アルゴリズム
 	// k:バネ定数 f:クーロン力の定数 n:バネの自然長 delta: 更新時間 limit: 運動エネルギーによる停止条件
 	IEnumerator PhysicsModel(float k = 1,float f = 0.001f,float n = 5,float delta = 0.25f,float limit = 1f){
+		if (graph == null)
+			yield break;
 		Dictionary<int,Vector3> vel = new Dictionary<int,Vector3> ();
 		foreach (Node node in graph.Nodes) {
 			vel [node.ID] = Vector3.zero;
