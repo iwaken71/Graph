@@ -1,12 +1,11 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 public class Graph{
 
 	// Nodeの集合
-	public HashSet<Node> Nodes;
+	private HashSet<Node> Nodes;
 
 	public Graph(){
 		Nodes = new HashSet<Node> ();
@@ -22,13 +21,12 @@ public class Graph{
 			return node1;
 		} else {
 			Debug.Log ("存在しません");
-			return new Node(-1);
+			return null;
 		}
 	}
 		
 	// 一応Nodeを返り値に持つが、返り値を使わないことが多い。
 	public Node AddNode(int id){
-
 		bool existNode = Nodes.Any (node => node.ID == id);
 		if (existNode) {
 			Node node1 = 
@@ -49,36 +47,21 @@ public class Graph{
 		Node node2 = AddNode (id2);
 		node2.neighbor.Add (id1);
 	}
-}
 
-
-public class Node{
-	int id;
-	public HashSet<int> neighbor; //隣接ノードの集合
-
-	public int ID{
-		get{ return id;}
-	}
-
-	public Node(int id){
-		this.id = id;
-		neighbor = new HashSet<int>();
-	}
-
-	public override bool Equals(object obj)
-	{
-		//objがnullか、型が違うときは、等価でない
-		if (obj == null || this.GetType() != obj.GetType())
-		{
-			return false;
+	public int RandomSeed(){
+		int number = Nodes.Count;
+		int random_number = Random.Range (0,number);
+		int count = 0;
+		foreach (Node node in Nodes) {
+			if (random_number == count) {
+				return  node.ID;
+			}
+			count++;
 		}
-		//idで比較する
-		Node c = (Node)obj;
-		return (this.id == c.id);
+		return -1;
 	}
-	//Equalsがtrueを返すときに同じ値を返す
-	public override int GetHashCode()
-	{
-		return this.id;
+
+	public HashSet<Node> GetNodes(){
+		return new HashSet<Node>(Nodes);
 	}
 }

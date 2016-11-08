@@ -1,10 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+
 public class Crawler{
 
-
 	List<int> sampleNodes = new List<int> ();
+	Dictionary<int,float> ClusterDic = new Dictionary<int,float>();
+	Dictionary<int,List<int>> NeighborDic = new Dictionary<int, List<int>>();
 
 	public Crawler(){
 		sampleNodes = new List<int> ();
@@ -12,49 +14,41 @@ public class Crawler{
 
 	public void Clear(){
 		sampleNodes = new List<int> ();
+		ClusterDic.Clear ();
+		NeighborDic.Clear ();
 	}
 
+	List<int> Neighbor(Graph g,int v){
+		if (NeighborDic.ContainsKey (v)) {
+			return NeighborDic [v];
+		} else {
+			return new List<int>(g.GetNode (v).neighbor);
+		}
+	}
 
 	public int RandomNode(Graph g){
-		List<int> Nodes = new List<int> ();
-		foreach (Node node in g.Nodes) {
-			Nodes.Add (node.ID);
-		}
-		int now_node =  Nodes[Random.Range(0,Nodes.Count)];
+		int now_node = g.RandomSeed ();
 		sampleNodes.Add (now_node);
 		return now_node;
-
 	}
 	public int NextRW(Graph g, int now_node){
 		if (sampleNodes.Count == 0) {
 			return RandomNode (g);
 		}
-		List<int> Nodes = new List<int> ();
-		foreach (int node in g.GetNode(now_node).neighbor) {
-			Nodes.Add (node);
-		}
-		int next_node =  Nodes[Random.Range(0,Nodes.Count)];
+		List<int> neighbor_list = Neighbor (g, now_node);
+		int next_node =  neighbor_list[Random.Range(0,neighbor_list.Count)];
 		sampleNodes.Add (now_node);
 		return next_node;
 	}
 
-	public List<int> RW(Graph g, float p){
-		int num = (int)(g.Nodes.Count * p);
-		Debug.Log (g.Nodes.Count);
-		Debug.Log (num);
-		List<int> sampleNodes = new List<int> ();
+	public List<int> RW(Graph g, int budget){
 		List<int> Nodes = new List<int> ();
-		foreach (Node node in g.Nodes) {
-			Nodes.Add (node.ID);
-		}
-		int now_node = Nodes[Random.Range(0,Nodes.Count)];
+		int now_node = g.RandomSeed ();
 		sampleNodes.Add (now_node);
 
-		while (sampleNodes.Count < num) {
-			List<int> neighbor_list = new List<int>(g.GetNode (now_node).neighbor);
+		while (sampleNodes.Count < budget) {
+			List<int> neighbor_list = Neighbor (g, now_node);
 			int next_node = neighbor_list[Random.Range(0,neighbor_list.Count)];
-
-
 			now_node = next_node;
 			sampleNodes.Add (now_node);
 		}
@@ -64,18 +58,13 @@ public class Crawler{
 
 
 
-	public List<int> MHRW(Graph g, float p){
-		int num = (int)(g.Nodes.Count / p);
-		List<int> sampleNodes = new List<int> ();
-		List<int> Nodes = new List<int> ();
-		foreach (Node node in g.Nodes) {
-			Nodes.Add (node.ID);
-		}
-		int now_node = Nodes[Random.Range(0,Nodes.Count)];
+	public List<int> MHRW(Graph g, int budget){
+		int num = budget;
+		int now_node = g.RandomSeed ();
 		sampleNodes.Add (now_node);
 
 		while (sampleNodes.Count < num) {
-			List<int> neighbor_list = new List<int>(g.GetNode (now_node).neighbor);
+			List<int> neighbor_list = Neighbor (g, now_node);
 			int next_node = neighbor_list[Random.Range(0,neighbor_list.Count)];
 			int degree = neighbor_list.Count;
 
@@ -89,19 +78,14 @@ public class Crawler{
 		return sampleNodes;
 	}
 
-	public List<int> NBRW(Graph g, float p){
-		int num = (int)(g.Nodes.Count / p);
-		List<int> sampleNodes = new List<int> ();
-		List<int> Nodes = new List<int> ();
-		foreach (Node node in g.Nodes) {
-			Nodes.Add (node.ID);
-		}
-		int now_node = Nodes[Random.Range(0,Nodes.Count)];
+	public List<int> NBRW(Graph g,int budget){
+	//	List<int> sampleNodes = new List<int> ();
+
+		int now_node = g.RandomSeed ();
 		sampleNodes.Add (now_node);
 
-		while (sampleNodes.Count < num) {
-			Nodes.Clear ();
-			List<int> neighbor_list = new List<int>(g.GetNode (now_node).neighbor);
+		while (sampleNodes.Count <budget) {
+			List<int> neighbor_list = Neighbor (g, now_node);
 			int next_node = neighbor_list[Random.Range(0,neighbor_list.Count)];
 			int degree = neighbor_list.Count;
 			if (degree <= 1) {
@@ -122,13 +106,32 @@ public class Crawler{
 		return sampleNodes;
 	}
 
-
-
 	void PrintArray(List<int> lst){
 		string s = "";
 		for (int i = 0; i < lst.Count; i++) {
 			s += lst[i].ToString()+",";
 		}
 		Debug.Log (s);
+	}
+
+	// グラフと頂点IDからクラスタ係数を求める
+	public float Clustering(Graph g,int v){
+		List<int> neighbor= Neighbor (g, v);
+		int degree = neighbor.Count;
+
+		if (degree <= 1)
+			return 0;
+
+		int count = 0;
+		int triangle = 0;
+		
+		for (int i = 0; i < degree - 1; i++) {
+			List<int> neighbor2 = new List<int> (Neighbor(g,neighbor[i]));
+			for (int j = i + 1; j < degree; j++) {
+				if (neighbor.Contains (neighbor2 [j]))
+					triangle++;
+			}
+		}
+		return (float)triangle / count;
 	}
 }

@@ -14,12 +14,14 @@ public class Controller : MonoBehaviour {
 	void Start () {
 		graphObject = Instantiate(Resources.Load ("Graph") as GameObject);
 		graphView = graphObject.GetComponent<GraphView> ();
-		g=BAModel (250,3);
+		g = BAModel (1000, 3);
+		//g=RandomGraph (300, 0.05f);
 		Debug.Log("readGraph");
 		crawler = new Crawler();
 		graphView.SetGraph(g);
+		//graphView.CircularLayout (10);
 		graphView.PhysicsModelLayout();
-		crawler.RW (g, 0.5f);
+		crawler.RW (g, 100);
 	}
 	
 	// Update is called once per frame
@@ -79,8 +81,10 @@ public class Controller : MonoBehaviour {
 			}
 		}
 		int index = m;
-		while (g.Nodes.Count < n) {
+		int count = 0;
+		while (count < n) {
 			g.AddNode (index);
+
 			List<int> a = new List<int> (nodeList);
 			for (int i = 0; i < m; i++) {
 				int ran = UnityEngine.Random.Range (0, a.Count);
@@ -91,10 +95,25 @@ public class Controller : MonoBehaviour {
 				nodeList.Add (nextID);
 			}
 			index++;
-
-
+			count++;
 		}
 		return g;
+	}
+
+	private Graph RandomGraph(int n,float p){
+		Graph g = new Graph ();
+		for(int i = 0;i < n; i++){
+			g.AddNode (i);
+		}
+		for (int i = 0; i < n - 1; i++) {
+			for (int j = i + 1; j < n; j++) {
+				if (UnityEngine.Random.Range (0f, 1f) < p) {
+					g.AddEdge (i, j);
+				}
+			}
+		}
+		return g;
+
 	}
 
 	Graph ReadGraph(string path)

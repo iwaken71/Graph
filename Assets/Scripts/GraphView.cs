@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 using UniRx;
 
 public class GraphView : MonoBehaviour {
@@ -34,7 +33,7 @@ public class GraphView : MonoBehaviour {
 
 	void Start(){
 		nodeBaseSize.Value = 0.2f;
-		nodeSizeUp.Value = 0.1f;
+		nodeSizeUp.Value = 0.0f;
 		alpha.Value = 1.0f;
 		edgeWidth.Value = 0.05f;
 		edgeAlpha.Value = 0.2f;
@@ -43,7 +42,7 @@ public class GraphView : MonoBehaviour {
 	public void SetGraph(Graph input){
 		this.graph = input;
 
-		foreach (Node node in graph.Nodes) {
+		foreach (Node node in graph.GetNodes()) {
 			GameObject obj = Instantiate (nodePrefab)as GameObject;
 			obj.name = node.ID.ToString ();
 			int degree = node.neighbor.Count;
@@ -80,7 +79,7 @@ public class GraphView : MonoBehaviour {
 
 
 	void NodeSizeUpdate(float nodeBaseSize,float nodeSizeUp){
-		foreach (Node node in graph.Nodes) {
+		foreach (Node node in graph.GetNodes()) {
 			GameObject obj = nodeObj [node.ID];
 			int degree = node.neighbor.Count;
 			obj.transform.localScale = Vector3.one * (nodeBaseSize+ degree*nodeSizeUp);
@@ -88,7 +87,7 @@ public class GraphView : MonoBehaviour {
 	}
 
 	void NodeColorAlphaUpdate(float a){
-		foreach (Node node in graph.Nodes) {
+		foreach (Node node in graph.GetNodes()) {
 			GameObject obj = nodeObj [node.ID];
 			Color c = obj.GetComponent<Renderer> ().material.color;
 			obj.GetComponent<Renderer> ().material.color = new Color (c.r,c.g,c.b,a);
@@ -160,11 +159,11 @@ public class GraphView : MonoBehaviour {
 	// 円配置のレイアウト
 	public void CircularLayout(float radius){
 		nodePosition.Clear ();
-		int nodeNum = graph.Nodes.Count;
+		int nodeNum = graph.GetNodes().Count;
 		int count = 0;
 		OnVisualNode ();
 
-		foreach (Node node in graph.Nodes) {
+		foreach (Node node in graph.GetNodes()) {
 			var angle = (360.0f / nodeNum) * count * (Mathf.PI / 180);
 			Vector3 pos = new Vector3 (Mathf.Cos (angle), 0, Mathf.Sin (angle))*radius;
 			nodePosition.Add (node.ID, pos);
@@ -175,19 +174,40 @@ public class GraphView : MonoBehaviour {
 		DrawAllEdge ();
 	}
 	private void DrawAllNode(){
+		if (graph == null)
+			return;
 		OnVisualNode ();
-		foreach (Node node in graph.Nodes) {
+		foreach (Node node in graph.GetNodes()) {
 			nodeObj [node.ID].transform.position = nodePosition [node.ID];
 		}
 	}
 	private void DrawAllEdge(){
-		ClearEdge ();
+		if (graph == null)
+			return;
+		//ClearEdge ();
 		OnVisualNode ();
-		foreach (Node node in graph.Nodes) {
-			foreach (int id in node.neighbor) {
-				DrawEdge (node.ID,id);
+		if (edgeParent.transform.childCount == 0) {
+			foreach (Node node in graph.GetNodes()) {
+				foreach (int id in node.neighbor) {
+					DrawEdge (node.ID,id);
+				}
 			}
+		} else {
+			for (int i = 0; i < edgeParent.transform.childCount; i++) {
+				GameObject edgeObj = edgeParent.transform.GetChild (i).gameObject;
+				LineRenderer lr = edgeObj.GetComponent<LineRenderer> ();
+				Edge edgeInfo = edgeObj.GetComponent<Edge> ();
+				Vector3[] vec = new Vector3[2];
+				vec [0] = nodePosition [edgeInfo.left];
+				vec [1] = nodePosition [edgeInfo.right];
+				lr.SetWidth (edgeWidth.Value, edgeWidth.Value);
+				Color c  = lr.material.color;
+				lr.material.color = new Color (c.r, c.g, c.b, edgeAlpha.Value);
+				lr.SetPositions (vec);
+			}
+
 		}
+
 	}
 
 	// 辺を描画する
@@ -198,6 +218,9 @@ public class GraphView : MonoBehaviour {
 			GameObject newLine = Instantiate (edgePrefab);
 			newLine.name = name;
 			LineRenderer lr = newLine.GetComponent<LineRenderer> ();
+			Edge edge = newLine.AddComponent<Edge> ();
+			edge.left = id1;
+			edge.right = id2;
 			Vector3[] vec = new Vector3[2];
 			vec [0] = nodePosition [id1];
 			vec [1] = nodePosition [id2];
@@ -213,9 +236,11 @@ public class GraphView : MonoBehaviour {
 
 	// 力学モデルによるグラフ描画アルゴリズム
 	// k:バネ定数 f:クーロン力の定数 n:バネの自然長 delta: 更新時間 limit: 運動エネルギーによる停止条件
-	IEnumerator PhysicsModel(float k = 1,float f = 0.001f,float n = 5,float delta = 0.25f,float limit = 1f){
+	IEnumerator PhysicsModel(float k = 1,float f = 0.001f,float n = 5,float delta = 0.10f,float limit = 1f){
+		if (graph == null)
+			yield break;
 		Dictionary<int,Vector3> vel = new Dictionary<int,Vector3> ();
-		foreach (Node node in graph.Nodes) {
+		foreach (Node node in graph.GetNodes()) {
 			vel [node.ID] = Vector3.zero;
 			if(!nodePosition.ContainsKey(node.ID)){
 				Vector3 pos = randomPos ();
@@ -225,16 +250,16 @@ public class GraphView : MonoBehaviour {
 		float E = 0;
 		do {
 			E = 0;
-			foreach(Node node1 in graph.Nodes){
+			foreach(Node node1 in graph.GetNodes()){
 				Vector3 power = new Vector3(0,0,0); 
-
-				foreach(Node node2 in graph.Nodes){
+				/*
+				foreach(Node node2 in graph.GetNodes()){
 					if(node1.ID!=node2.ID){
 						Vector3 toNode = (nodePosition[node2.ID]-nodePosition[node1.ID]).normalized;
 						float sqrDistance = SqrDistance(nodePosition[node1.ID],nodePosition[node2.ID]);
 						power += toNode*f/(sqrDistance); 
 					}
-				}
+				}*/
 				foreach(int neighbor in node1.neighbor){
 					Vector3 toNode = (nodePosition[neighbor]-nodePosition[node1.ID]).normalized;
 					float distance = Vector3.Distance(nodePosition[node1.ID],nodePosition[neighbor]);
